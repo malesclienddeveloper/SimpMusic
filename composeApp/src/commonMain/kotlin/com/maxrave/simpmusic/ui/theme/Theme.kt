@@ -148,7 +148,7 @@ fun AppTheme(
                 isDark = isDark,
                 isAmoled = isDark,
                 style = PaletteStyle.TonalSpot,
-                modifyColorScheme = { cs -> if (isDark) cs else cs.withNeutralLightSurfaces() },
+                modifyColorScheme = { cs -> if (isDark) cs.withSpotifyDarkSurfaces() else cs.withNeutralLightSurfaces() },
             )
     // Immersive screens stay dark even at light theme (see [ForceDarkContent]). Resolve their scheme
     // once here instead of letting every such subtree build a palette of its own.
@@ -161,6 +161,7 @@ fun AppTheme(
                 isDark = true,
                 isAmoled = true,
                 style = PaletteStyle.TonalSpot,
+                modifyColorScheme = { cs -> cs.withSpotifyDarkSurfaces() },
             )
         }
     SystemBarAppearanceEffect(isDark)

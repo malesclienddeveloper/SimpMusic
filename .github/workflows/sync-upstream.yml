@@ -1,0 +1,84 @@
+name: Sync upstream SimpMusic
+
+# Once a week (or on demand) merge maxrave-dev/SimpMusic into a branch and open a Pull Request.
+# Nothing reaches your default branch until you merge that PR, so conflicts with the Spotify-style
+# UI are visible BEFORE a release, never after.
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+          # SYNC_TOKEN is optional but recommended: pushes that touch .github/workflows are rejected
+          # for the default token. See FORK.md.
+          token: ${{ secrets.SYNC_TOKEN || github.token }}
+
+      - name: Merge upstream
+        id: merge
+        shell: bash
+        run: |
+          set -uo pipefail
+          BASE="${{ github.event.repository.default_branch }}"
+          git config user.name  "sync-bot"
+          git config user.email "sync-bot@users.noreply.github.com"
+          git remote add upstream https://github.com/maxrave-dev/SimpMusic.git
+          git fetch upstream dev
+          git checkout -B upstream-sync "origin/$BASE"
+
+          if git merge-base --is-ancestor upstream/dev HEAD; then
+            echo "status=uptodate" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+
+          git merge --no-edit upstream/dev || true
+
+          # Upstream's own CI is deleted in this fork; if upstream edited those files, keep them deleted.
+          for f in android.yml android-release.yml desktop-package.yml pr-triage.yml; do
+            p=".github/workflows/$f"
+            if git ls-files -u -- "$p" | grep -q .; then git rm -q -f "$p"; fi
+          done
+
+          if git ls-files -u | grep -q .; then
+            git ls-files -u | cut -f2 | sort -u > conflicts.txt
+            git merge --abort || true
+            echo "status=conflict" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --cached --quiet || git commit --no-edit -m "Merge upstream/dev"
+          echo "status=merged" >> "$GITHUB_OUTPUT"
+
+      - name: Open Pull Request
+        if: steps.merge.outputs.status == 'merged'
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN || github.token }}
+        run: |
+          BASE="${{ github.event.repository.default_branch }}"
+          git push --force origin upstream-sync
+          if [ -z "$(gh pr list --head upstream-sync --state open --json number --jq '.[0].number')" ]; then
+            gh pr create --base "$BASE" --head upstream-sync \
+              --title "Sync upstream SimpMusic" \
+              --body "Automatic merge of maxrave-dev/SimpMusic dev. Check that the build passes, then merge and tag a release."
+          fi
+
+      - name: Report conflicts
+        if: steps.merge.outputs.status == 'conflict'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Upstream could not be merged automatically. Conflicting files:"
+            echo; echo '```'; cat conflicts.txt; echo '```'
+            echo; echo "Merge locally: git fetch upstream && git merge upstream/dev"
+          } > body.md
+          gh issue create --title "Upstream sync has conflicts" --body-file body.md

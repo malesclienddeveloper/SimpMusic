@@ -252,7 +252,9 @@ class MainActivity : AppCompatActivity() {
         }
         viewModel.getLocation()
 
-        if (!BuildConfig.DEBUG) viewModel.checkOfficialBuild(packageName, signingCertSha256())
+        // FORK: the "official build" gate is off. This fork has its own package name and signing
+        // key, so the check would lock every install behind the unofficial-build screen.
+        // if (!BuildConfig.DEBUG) viewModel.checkOfficialBuild(packageName, signingCertSha256())
         setContent {
             App(viewModel)
         }

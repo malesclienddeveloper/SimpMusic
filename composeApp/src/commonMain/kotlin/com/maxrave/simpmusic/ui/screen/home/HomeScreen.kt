@@ -796,7 +796,8 @@ fun HomeScreen(
                                                         )
                                                 } != null,
                                         ) {
-                                            QuickPicks(
+                                            // FORK: two-column quick-access grid instead of the 4-row shelf.
+                                            SpotifyQuickAccessGrid(
                                                 homeItem =
                                                     (
                                                         homeData.find {

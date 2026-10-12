@@ -84,6 +84,7 @@ import com.maxrave.simpmusic.extension.animateScrollAndAnchorItemTop
 import com.maxrave.simpmusic.extension.animateScrollAndCentralizeItem
 import com.maxrave.simpmusic.extension.getScreenSizeInfo
 import com.maxrave.simpmusic.extension.parseRichSyncWords
+import com.maxrave.simpmusic.ui.theme.SpotifyStyle
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.NowPlayingScreenData
 import com.maxrave.simpmusic.viewModel.SharedViewModel
@@ -214,8 +215,9 @@ private fun empEasing(x: Float): Float =
 
 // Repeated lyrics palette tokens hoisted to file scope: avoids re-allocating
 // the same Color() objects on every recomposition of every line item.
-private val DimOriginalColor = Color.LightGray.copy(alpha = 0.35f)
-private val DimTranslatedColor = Color(0xFF97971A).copy(alpha = 0.3f)
+// FORK: inactive lines are dimmed white, the sung line is plain white.
+private val DimOriginalColor = SpotifyStyle.lyricInactive
+private val DimTranslatedColor = Color.White.copy(alpha = 0.3f)
 
 // A pronunciation guide sits BETWEEN the original and its translation in meaning, so it does the
 // same visually: neutral grey rather than the translation's yellow, dimmer than the original it
@@ -884,7 +886,7 @@ fun LyricsLineItem(
                     alignmentText = originalWords,
                     modifier = Modifier.fillMaxWidth(),
                     style = typo().bodyMedium,
-                    color = if (bold && isCurrent) Color.Yellow else DimTranslatedColor,
+                    color = if (bold && isCurrent) SpotifyStyle.lyricTranslationActive else DimTranslatedColor,
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -1048,7 +1050,7 @@ fun RichSyncLyricsLineItem(
                 alignmentText = originalWords,
                 modifier = Modifier.fillMaxWidth(),
                 style = translatedStyleOverride ?: typo().bodyMedium,
-                color = translatedColorOverride ?: if (isCurrent) Color.Yellow else DimTranslatedColor,
+                color = translatedColorOverride ?: if (isCurrent) SpotifyStyle.lyricTranslationActive else DimTranslatedColor,
             )
         }
 

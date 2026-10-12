@@ -1237,7 +1237,7 @@ fun NowPlayingContentSpotify(
                                                                 text = translatedLineText,
                                                                 alignmentText = lineText,
                                                                 style = typo().bodyMedium,
-                                                                color = Color.Yellow,
+                                                                color = com.maxrave.simpmusic.ui.theme.SpotifyStyle.lyricTranslationActive,
                                                                 maxLines = 1,
                                                             )
                                                         }

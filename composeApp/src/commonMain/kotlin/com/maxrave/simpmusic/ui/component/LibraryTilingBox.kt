@@ -281,4 +281,4 @@ private fun EmptySleeve(
     )
 }
 
-private val CardShape = RoundedCornerShape(20.dp)
+private val CardShape = RoundedCornerShape(8.dp)

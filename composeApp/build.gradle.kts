@@ -827,13 +827,16 @@ buildkonfig {
     packageName = "com.maxrave.simpmusic"
     exposeObjectWithName = "BuildKonfig"
     defaultConfigs {
+        // FORK: same overrides as androidApp, so the update check compares the right version.
         val versionName =
-            libs.versions.version.name
-                .get()
+            (project.findProperty("fork.versionName") as String?)
+                ?: libs.versions.version.name
+                    .get()
         val versionCode =
-            libs.versions.version.code
-                .get()
-                .toInt()
+            (project.findProperty("fork.versionCode") as String?)?.toInt()
+                ?: libs.versions.version.code
+                    .get()
+                    .toInt()
         buildConfigField(STRING, "versionName", versionName)
         buildConfigField(INT, "versionCode", "$versionCode")
 

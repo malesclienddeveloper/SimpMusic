@@ -72,6 +72,7 @@ import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.getDownloadFolderPath
 import com.maxrave.simpmusic.expect.ui.toByteArray
 import com.maxrave.simpmusic.getPlatform
+import com.maxrave.simpmusic.utils.ForkUpdateChecker
 import com.maxrave.simpmusic.utils.VersionManager
 import com.maxrave.simpmusic.utils.decodePromos
 import com.maxrave.simpmusic.utils.shownPromoIds
@@ -1144,7 +1145,8 @@ class SharedViewModel(
                 System.currentTimeMillis().toString(),
             )
             if (updateChannel == DataStoreManager.GITHUB) {
-                updateRepository.checkForGithubReleaseUpdate().collectLatest { response ->
+                // FORK: updates come from this fork's own releases, never from upstream.
+                ForkUpdateChecker.check().collectLatest { response ->
                     val data = response.data
                     when (response) {
                         is Resource.Success if (data != null) -> {
@@ -1159,7 +1161,7 @@ class SharedViewModel(
                     _isCheckingUpdate.value = false
                 }
             } else if (updateChannel == DataStoreManager.FDROID) {
-                updateRepository.checkForFdroidUpdate().collectLatest { response ->
+                ForkUpdateChecker.check().collectLatest { response ->
                     val data = response.data
                     when (response) {
                         is Resource.Success if (data != null) -> {

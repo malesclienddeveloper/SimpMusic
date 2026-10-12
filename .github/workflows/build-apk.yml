@@ -1,0 +1,111 @@
+name: Build & release APK
+
+# Push a tag such as v1.0.0 (or run the workflow by hand) and a signed APK is attached to a
+# GitHub Release. The in-app updater reads that release, so the tag IS the app version.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version without the leading v, e.g. 1.0.0'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: temurin
+          cache: gradle
+
+      - name: Resolve version
+        id: v
+        shell: bash
+        run: |
+          RAW="${{ github.event.inputs.version || github.ref_name }}"
+          VERSION="${RAW#v}"
+          if ! [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "Version must look like 1.2.3 (got '$VERSION')"; exit 1
+          fi
+          CODE=$(( BASH_REMATCH[1] * 10000 + BASH_REMATCH[2] * 100 + BASH_REMATCH[3] ))
+          echo "name=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+
+      - name: Point the in-app updater at this repository
+        run: |
+          sed -i "s|__FORK_GITHUB_REPOSITORY__|${{ github.repository }}|" \
+            composeApp/src/commonMain/kotlin/com/maxrave/simpmusic/utils/ForkUpdate.kt
+          grep -n "GITHUB_REPOSITORY =" composeApp/src/commonMain/kotlin/com/maxrave/simpmusic/utils/ForkUpdate.kt
+
+      - name: Check signing secrets
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+        run: |
+          if [ -z "$SIGNING_KEY" ]; then
+            echo "::error::Secret SIGNING_KEY is missing. See FORK.md, step 'Create the signing key'."
+            exit 1
+          fi
+
+      - name: Generate library list
+        run: ./gradlew -PisFullBuild=false exportLibraryDefinitions
+
+      - name: "Build release APK (FOSS - no Sentry, no tracking)"
+        run: >
+          ./gradlew -PisFullBuild=false
+          -Pfork.versionName=${{ steps.v.outputs.name }}
+          -Pfork.versionCode=${{ steps.v.outputs.code }}
+          androidApp:assembleRelease
+
+      - name: Zipalign and sign
+        env:
+          SIGNING_KEY: ${{ secrets.SIGNING_KEY }}
+          ALIAS: ${{ secrets.ALIAS }}
+          KEY_STORE_PASSWORD: ${{ secrets.KEY_STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)"
+          echo "$SIGNING_KEY" | base64 -d > "$RUNNER_TEMP/release.jks"
+          mkdir -p out
+          shopt -s nullglob
+          for apk in androidApp/build/outputs/apk/release/*.apk; do
+            base="$(basename "$apk" .apk)"
+            base="${base%-unsigned}"
+            "$BT/zipalign" -p -f 4 "$apk" "$RUNNER_TEMP/aligned.apk"
+            "$BT/apksigner" sign \
+              --ks "$RUNNER_TEMP/release.jks" --ks-key-alias "$ALIAS" \
+              --ks-pass env:KEY_STORE_PASSWORD --key-pass env:KEY_PASSWORD \
+              --out "out/SimpWave-${{ steps.v.outputs.name }}-${base#androidApp-}.apk" \
+              "$RUNNER_TEMP/aligned.apk"
+          done
+          ls -la out
+          test -n "$(ls out)" || { echo "::error::No APK was produced"; exit 1; }
+          for f in out/*.apk; do "$BT/apksigner" verify --print-certs "$f" | head -3; done
+          rm -f "$RUNNER_TEMP/release.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: out/*.apk
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ steps.v.outputs.name }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" out/*.apk --clobber
+          else
+            gh release create "$TAG" out/*.apk --title "$TAG" --generate-notes
+          fi

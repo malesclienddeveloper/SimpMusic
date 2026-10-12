@@ -76,6 +76,7 @@ import com.maxrave.simpmusic.extension.copy
 import com.maxrave.simpmusic.ui.component.AppBottomNavigationBar
 import com.maxrave.simpmusic.ui.component.AppNavigationRail
 import com.maxrave.simpmusic.ui.component.LiquidGlassAppBottomNavigationBar
+import com.maxrave.simpmusic.ui.component.SpotifyBottomNavigationBar
 import com.maxrave.simpmusic.ui.component.LocalAppDialogOpen
 import com.maxrave.simpmusic.ui.component.LocalNowPlayingOpen
 import com.maxrave.simpmusic.ui.component.LocalUserStarted
@@ -105,6 +106,7 @@ import com.maxrave.simpmusic.ui.theme.desktopWindowLight
 import com.maxrave.simpmusic.ui.theme.fontFamily
 import com.maxrave.simpmusic.ui.theme.parseThemeColorHex
 import com.maxrave.simpmusic.ui.theme.typo
+import com.maxrave.simpmusic.utils.ForkConfig
 import com.maxrave.simpmusic.utils.VersionManager
 import com.maxrave.simpmusic.utils.isAppLinkAvailable
 import com.maxrave.simpmusic.utils.libraryTabOf
@@ -534,10 +536,11 @@ fun App(
                     ) {
                         // On Android both materials go through the folding bar, which draws the mini
                         // player itself. Desktop keeps the always-open flat bar under its own one.
-                        val useFoldingBar = getPlatform() == Platform.Android || isLiquidGlassEnabled == TRUE
+                        // FORK: the floating glass bar is replaced by the full-width bar below the mini player.
+                        val useFoldingBar = false
                         Column {
                             AnimatedVisibility(
-                                isShowMiniPlayer && !useFoldingBar && isLiquidGlassEnabled == DataStoreManager.FALSE,
+                                isShowMiniPlayer && !useFoldingBar,
                                 enter = fadeIn() + slideInHorizontally(),
                                 exit = fadeOut(),
                             ) {
@@ -547,8 +550,8 @@ fun App(
                                         .height(60.dp)
                                         .fillMaxWidth()
                                         .padding(
-                                            // The bottom bar's own 16dp, so both edges line up.
-                                            horizontal = 16.dp,
+                                            // FORK: 8dp side margins, like the reference mini player.
+                                            horizontal = 8.dp,
                                         ).padding(
                                             bottom = 4.dp,
                                         ),
@@ -577,7 +580,7 @@ fun App(
                                     viewModel.reloadDestination(klass)
                                 }
                             } else {
-                                AppBottomNavigationBar(
+                                SpotifyBottomNavigationBar(
                                     navController = navController,
                                     showAnalyticsTab = showAnalyticsTab,
                                     showMixForYouTab = showMixForYouTab,
@@ -847,7 +850,7 @@ fun App(
                                 onClick = {
                                     shouldShowUpdateDialog = false
                                     viewModel.showedUpdateDialog = false
-                                    openUrl("https://simpmusic.org/download")
+                                    openUrl(ForkConfig.releasesPageUrl)
                                 },
                             ) {
                                 Text(

@@ -135,6 +135,7 @@ import com.maxrave.simpmusic.ui.icon.VolumeOff
 import com.maxrave.simpmusic.ui.icon.VolumeUp
 import com.maxrave.simpmusic.ui.screen.player.content.toAudioQualityLabel
 import com.maxrave.simpmusic.ui.theme.LocalIsDarkTheme
+import com.maxrave.simpmusic.ui.theme.SpotifyStyle
 import com.maxrave.simpmusic.ui.theme.typo
 import com.maxrave.simpmusic.viewModel.SharedViewModel
 import com.maxrave.simpmusic.viewModel.UIEvent
@@ -271,17 +272,13 @@ fun MiniPlayer(
         // One shape for both the Card and the clip below. They must not diverge: the clip wraps
         // the Card's own background draw, so the larger radius wins and silently becomes the
         // visible one.
-        val miniPlayerShape = CircleShape
+        // FORK: rounded rectangle instead of a capsule.
+        val miniPlayerShape = RoundedCornerShape(8.dp)
         // Without glass the card follows the theme, not the playing artwork.
-        val cardColor =
-            if (isLiquidGlassEnabled == DataStoreManager.TRUE) {
-                Color.Transparent
-            } else {
-                // Same opaque surface as the bottom bar capsule, so the two floating surfaces read as one set.
-                MaterialTheme.colorScheme.surfaceContainer
-            }
+        // FORK: always the flat raised card; the glass look is not part of this design.
+        val cardColor = SpotifyStyle.cardSurfaceHigh
         // The flat (default) card: round artwork and controls sitting in filled circles. Glass keeps its own look.
-        val isFlat = isLiquidGlassEnabled != DataStoreManager.TRUE
+        val isFlat = true
         Card(
             shape = miniPlayerShape,
             colors =
@@ -292,11 +289,7 @@ fun MiniPlayer(
             modifier =
                 modifier
                     .then(
-                        if (isLiquidGlassEnabled == DataStoreManager.TRUE) {
-                            Modifier.liquidGlass(backdrop, layer, luminance, RoundedCornerShape(16.dp))
-                        } else {
-                            Modifier
-                        },
+                        Modifier,
                     ).then(
                         Modifier
                             .clip(miniPlayerShape)
@@ -393,21 +386,6 @@ fun MiniPlayer(
                                         .align(Alignment.CenterVertically),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                if (isFlat) {
-                                    // Progress rides a ring around the artwork: wavy while playing, flat when paused.
-                                    val ringStroke = Stroke(width = with(LocalDensity.current) { 3.dp.toPx() }, cap = StrokeCap.Round)
-                                    CircularWavyProgressIndicator(
-                                        progress = { animatedProgress },
-                                        modifier = Modifier.fillMaxSize(),
-                                        color = MaterialTheme.colorScheme.primary,
-                                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                                        stroke = ringStroke,
-                                        trackStroke = ringStroke,
-                                        // A raw 0/1, never a tweened value: the node animates amplitude
-                                        // itself and drops new targets mid-animation (see WavySeekBar).
-                                        amplitude = { p -> if (p > 0f && isPlaying) 1f else 0f },
-                                    )
-                                }
                                 AsyncImage(
                                     model =
                                         ImageRequest
@@ -419,11 +397,11 @@ fun MiniPlayer(
                                     error = rememberHolderPainter(),
                                     contentDescription = null,
                                     // Crop in the circle: FillWidth would leave bands around a 16:9 video thumbnail.
-                                    contentScale = if (isFlat) ContentScale.Crop else ContentScale.FillWidth,
+                                    contentScale = ContentScale.Crop,
                                     modifier =
                                         Modifier
-                                            .size(if (isFlat) 26.dp else 40.dp)
-                                            .clip(if (isFlat) CircleShape else RoundedCornerShape(4.dp)),
+                                            .size(40.dp)
+                                            .clip(RoundedCornerShape(4.dp)),
                                 )
                             }
                             Spacer(modifier = Modifier.width(10.dp))
@@ -514,18 +492,12 @@ fun MiniPlayer(
                     }
                     // Flat: 40dp in the 56dp pill leaves an even 8dp ring.
                     val controlSize = if (isFlat) 40.dp else 48.dp
-                    val playColor = if (isFlat) MaterialTheme.colorScheme.onPrimary else textColor
+                    val playColor = textColor
                     Spacer(modifier = Modifier.width(if (isFlat) 8.dp else 15.dp))
                     // background(shape), not clip: the heart's like-burst draws outside its bounds.
                     Box(
                         modifier =
-                            if (isFlat) {
-                                Modifier
-                                    .size(controlSize)
-                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape)
-                            } else {
-                                Modifier
-                            },
+                            Modifier.size(controlSize),
                         contentAlignment = Alignment.Center,
                     ) {
                         HeartCheckBox(checked = liked, size = 30, tint = textColor) {
@@ -536,8 +508,7 @@ fun MiniPlayer(
                     Box(
                         modifier =
                             Modifier
-                                .size(controlSize)
-                                .then(if (isFlat) Modifier.background(MaterialTheme.colorScheme.primary, CircleShape) else Modifier),
+                                .size(controlSize),
                         contentAlignment = Alignment.Center,
                     ) {
                         Crossfade(targetState = loading, label = "") {
@@ -559,28 +530,28 @@ fun MiniPlayer(
 
                     Spacer(modifier = Modifier.width(if (isFlat) 8.dp else 15.dp))
                 }
-                // The flat card shows progress as the ring around its artwork instead.
-                if (!isFlat) {
+                // FORK: progress is a thin line along the bottom edge of the card.
+                run {
                     Box(
                         modifier =
                             Modifier
                                 .wrapContentSize(Alignment.Center)
                                 .padding(
                                     horizontal = 10.dp,
-                                ).align(Alignment.BottomCenter),
+                                ).padding(bottom = 3.dp).align(Alignment.BottomCenter),
                     ) {
                         LinearProgressIndicator(
                             progress = { animatedProgress },
                             modifier =
                                 Modifier
                                     .fillMaxWidth()
-                                    .height(1.dp)
+                                    .height(2.dp)
                                     .background(
                                         color = Color.Transparent,
                                         shape = RoundedCornerShape(4.dp),
                                     ),
                             color = textColor,
-                            trackColor = Color.Transparent,
+                            trackColor = Color.White.copy(alpha = 0.25f),
                             strokeCap = StrokeCap.Round,
                             drawStopIndicator = {},
                         )

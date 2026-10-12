@@ -43,9 +43,10 @@ fun Chip(
                         // below is what carries the shape now. The selected chip deliberately stays
                         // opaque — that contrast IS the selection, and it is the only one that has
                         // to be found at a glance.
-                        containerColor = Color.Transparent,
+                        // FORK: filled dark-grey pill, no outline — the selected chip is the green one.
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                         selectedContainerColor = MaterialTheme.colorScheme.primary,
-                        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        labelColor = MaterialTheme.colorScheme.onSurface,
                         // `primary` is a pale #B2C5FF on the dark theme, so the label has to be its
                         // matching `on` token — a hand-picked white would read on one theme and
                         // vanish on the other.
@@ -61,7 +62,7 @@ fun Chip(
                         selected = isSelected,
                         selectedBorderColor = Color.Transparent,
                         // outlineVariant, per M3's Aug 2024 chip update: a softer stroke than outline.
-                        borderColor = MaterialTheme.colorScheme.outlineVariant,
+                        borderColor = Color.Transparent,
                     ),
                 // No check icon. A solid `primary` fill against a fully transparent unselected chip
                 // is already the strongest contrast available, so a second signal adds nothing — and

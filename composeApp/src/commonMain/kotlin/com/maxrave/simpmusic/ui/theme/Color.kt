@@ -8,7 +8,7 @@ import androidx.compose.ui.graphics.Color
  * Brand seed color. The whole Material 3 ColorScheme is generated from this
  * color at runtime — see [AppTheme].
  */
-val seed = Color(0xFF8ECAE6)
+val seed = Color(0xFF1ED760)
 
 // ===== Semantic colors (not derivable from the color scheme) =====
 
@@ -16,7 +16,7 @@ val seed = Color(0xFF8ECAE6)
 val favoriteColor = Color(0xFFFF4081)
 
 /** Currently playing lyric line. */
-val lyricActiveColor = Color(0xFFFFFF00)
+val lyricActiveColor = Color(0xFFFFFFFF)
 
 val shimmerBackground = Color(0x7E383737)
 val shimmerLine = Color(0xFF4D4848)

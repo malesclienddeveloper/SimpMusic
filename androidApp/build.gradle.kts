@@ -20,16 +20,21 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.maxrave.simpmusic"
+        // FORK: own package so it installs next to upstream and updates only from this fork.
+        // Overridable from CI with -Pfork.applicationId=...
+        applicationId = (project.findProperty("fork.applicationId") as String?) ?: "app.simpwave.music"
         minSdk = 26
         targetSdk = 36
+        // FORK: CI passes -Pfork.versionName / -Pfork.versionCode so every release installs over the last.
         versionCode =
-            libs.versions.version.code
-                .get()
-                .toInt()
+            (project.findProperty("fork.versionCode") as String?)?.toInt()
+                ?: libs.versions.version.code
+                    .get()
+                    .toInt()
         versionName =
-            libs.versions.version.name
-                .get()
+            (project.findProperty("fork.versionName") as String?)
+                ?: libs.versions.version.name
+                    .get()
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled = true
 
