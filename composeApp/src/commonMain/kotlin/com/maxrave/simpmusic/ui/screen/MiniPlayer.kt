@@ -23,6 +23,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.MarqueeAnimationMode
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
@@ -273,7 +274,7 @@ fun MiniPlayer(
         // the Card's own background draw, so the larger radius wins and silently becomes the
         // visible one.
         // FORK: rounded rectangle instead of a capsule.
-        val miniPlayerShape = RoundedCornerShape(8.dp)
+        val miniPlayerShape = RoundedCornerShape(SpotifyStyle.radiusCard)
         // Without glass the card follows the theme, not the playing artwork.
         // FORK: always the flat raised card; the glass look is not part of this design.
         val cardColor = SpotifyStyle.cardSurfaceHigh
@@ -293,6 +294,8 @@ fun MiniPlayer(
                     ).then(
                         Modifier
                             .clip(miniPlayerShape)
+                            // FORK: a hairline edge lifts the card off the page without a shadow.
+                            .border(1.dp, SpotifyStyle.hairline, miniPlayerShape)
                             .offset { IntOffset(0, offsetY.value.roundToInt()) }
                             .clickable(
                                 onClick = onClick,

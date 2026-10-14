@@ -37,3 +37,12 @@ merge, lalu beri tag rilis baru.
 - Layar "build tidak resmi" milik upstream dimatikan karena fork punya package dan kunci sendiri.
 - Lisensi GPL-3.0 tetap berlaku: sertakan sumber kode fork Anda dan kredit ke SimpMusic.
 - Nama "Spotify" dan logonya tidak dipakai; hanya pola tata letak dan warna umum.
+
+## Penghalusan UI (v1.0.1)
+
+File baru (logika di luar file upstream, supaya merge upstream mudah):
+- `ui/component/SpotifyLyricsCard.kt` — kartu lirik di bawah artwork (baris aktif + berikutnya, ketuk = lirik layar penuh). Dipakai oleh `NowPlayingContentSpotify.kt` bila celah di bawah artwork >= 72dp.
+- `ui/screen/home/SpotifyHistoryHeader.kt` — header riwayat dengan tombol play hijau.
+- `SpotifyStyle` — token spasi/radius/garis tipis (`screenPadding`, `radiusCard`, `hairline`, dst).
+
+Diubah (ditandai `FORK:`): `LibraryTilingBox.kt` (daftar baris, bukan kartu pastel), `RecentlySongsScreen.kt` (header), `MiniPlayer.kt` (radius 12dp + garis tipis), `NowPlayingContentSpotify.kt` (kartu lirik).

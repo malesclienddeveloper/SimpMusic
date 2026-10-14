@@ -129,6 +129,7 @@ import com.maxrave.simpmusic.ui.component.ExplicitBadge
 import com.maxrave.simpmusic.ui.component.HeartCheckBox
 import com.maxrave.simpmusic.ui.component.LyricsOffsetBar
 import com.maxrave.simpmusic.ui.component.LyricsView
+import com.maxrave.simpmusic.ui.component.SpotifyLyricsCard
 import com.maxrave.simpmusic.ui.component.PlayPauseButton
 import com.maxrave.simpmusic.ui.component.PlayerControlLayout
 import com.maxrave.simpmusic.ui.component.hasTiming
@@ -978,6 +979,28 @@ fun NowPlayingContentSpotify(
                                             ?.stripRichSyncTimestamps()
                                             .orEmpty()
                                     }
+                                // FORK: when the gap is tall enough, show the Spotify-style lyrics
+                                // card (current + next line, tap = full-screen lyrics) instead of the
+                                // single inline line. The gap height itself is untouched.
+                                val nextLyricLineText =
+                                    if (currentLyricLineText.isEmpty()) {
+                                        ""
+                                    } else {
+                                        inlineLyrics
+                                            ?.lines
+                                            ?.getOrNull(state.currentLyricLineIndex + 1)
+                                            ?.words
+                                            ?.stripRichSyncTimestamps()
+                                            .orEmpty()
+                                    }
+                                if (middleLayoutPaddingDp >= 72 && currentLyricLineText.isNotEmpty()) {
+                                    SpotifyLyricsCard(
+                                        current = currentLyricLineText,
+                                        next = nextLyricLineText,
+                                        onClick = actions.onShowFullscreenLyrics,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                } else
                                 Crossfade(
                                     targetState = currentLyricLineText,
                                     animationSpec = tween(durationMillis = 300),

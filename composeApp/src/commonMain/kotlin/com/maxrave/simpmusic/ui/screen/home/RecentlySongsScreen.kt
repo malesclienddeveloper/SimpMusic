@@ -101,6 +101,33 @@ fun RecentlySongsScreen(
                 )
             }
 
+            // FORK: header with the big green play button (logic lives in SpotifyHistoryHeader.kt).
+            item {
+                val recentlyAddedTitle = stringResource(Res.string.recently_added)
+                SpotifyHistoryHeader(
+                    title = recentlyAddedTitle,
+                    enabled = recentlyItems.itemCount > 0,
+                    onPlay = {
+                        val first = (0 until recentlyItems.itemCount)
+                            .firstNotNullOfOrNull { recentlyItems.peek(it) as? SongEntity }
+                        if (first != null) {
+                            val track = first.toTrack()
+                            viewModel.setQueueData(
+                                QueueData.Data(
+                                    listTracks = arrayListOf(track),
+                                    firstPlayedTrack = track,
+                                    playlistId = "RDAMVM${first.videoId}",
+                                    playlistName = recentlyAddedTitle,
+                                    playlistType = PlaylistType.RADIO,
+                                    continuation = null,
+                                ),
+                            )
+                            viewModel.loadMediaItem(track, Config.SONG_CLICK, 0)
+                        }
+                    },
+                )
+            }
+
             items(
                 count = recentlyItems.itemCount,
                 key = { index ->

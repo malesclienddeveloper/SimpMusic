@@ -2,6 +2,7 @@ package com.maxrave.simpmusic.ui.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 
 /**
  * Dark-surface palette modelled on the "dark, layered, green accent" look popular in music apps.
@@ -30,6 +31,25 @@ object SpotifyStyle {
 
     /** The translation row under the line being sung. */
     val lyricTranslationActive = Color(0xD9FFFFFF)
+
+    // --- Elegance tokens: one spacing/shape scale so every screen breathes the same way. ---
+
+    /** Side gutter of a full-width screen section. */
+    val screenPadding = 16.dp
+
+    /** Gap between two stacked sections (Home shelves, Library blocks). */
+    val sectionGap = 24.dp
+
+    /** Corner radii: thumbnails, cards, the lyrics card / mini player. */
+    val radiusSmall = 6.dp
+    val radiusCard = 12.dp
+    val radiusLarge = 16.dp
+
+    /** Hairline for dividers and card borders; barely there on purpose. */
+    val hairline = Color(0x1FFFFFFF)
+
+    /** Soft lift for floating surfaces (mini player). */
+    val floatingShadow = 12.dp
 }
 
 /**
