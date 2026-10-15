@@ -69,6 +69,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -196,8 +197,9 @@ internal fun rememberAppleMusicTypography(): AppleMusicTypography {
         idleLyric = t.bodyMedium.copy(color = Color.White),
         idleTranslated = t.bodyMedium.copy(color = Color.Yellow),
         // The line over the progress bar is the inline lyric line Classic and M3E draw under their
-        // artwork: labelSmall in white, the same role and colour.
-        lyricStrip = t.labelSmall.copy(color = Color.White),
+        // artwork: white. FORK: a step larger and bolder (labelSmall is ~11sp) so the single line
+        // reads as a feature of the player rather than a caption.
+        lyricStrip = t.labelSmall.copy(color = Color.White, fontSize = 15.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold),
     )
 }
 

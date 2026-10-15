@@ -19,6 +19,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -32,6 +33,7 @@ import com.maxrave.common.Config
 import com.maxrave.logger.Logger
 import com.maxrave.simpmusic.expect.ui.PlatformWebView
 import com.maxrave.simpmusic.expect.ui.createWebViewCookieManager
+import com.maxrave.simpmusic.expect.ui.rememberGoogleAccountPicker
 import com.maxrave.simpmusic.expect.ui.rememberWebViewState
 import com.maxrave.simpmusic.extension.ultraThinBarStyle
 import com.maxrave.simpmusic.ui.component.DevLogInBottomSheet
@@ -74,6 +76,30 @@ fun LoginScreen(
 
     val state = rememberWebViewState()
 
+    // FORK: optional step before Google's page — pick a device account and pass it as a login hint.
+    // The cookie capture below is untouched, so the session is still read from the web login.
+    var accountHint by rememberSaveable { mutableStateOf<String?>(null) }
+    var chooserDone by rememberSaveable { mutableStateOf(false) }
+    val pickDeviceAccount =
+        rememberGoogleAccountPicker { email ->
+            if (email != null) {
+                accountHint = email
+                chooserDone = true
+            }
+        }
+    val showChooser = pickDeviceAccount != null && !chooserDone
+    val loginUrl =
+        remember(accountHint) {
+            val hint = accountHint
+            if (hint == null) {
+                Config.LOG_IN_URL
+            } else {
+                val enc = java.net.URLEncoder.encode(hint, "UTF-8")
+                val sep = if (Config.LOG_IN_URL.contains("?")) "&" else "?"
+                "${Config.LOG_IN_URL}${sep}Email=$enc&login_hint=$enc"
+            }
+        }
+
     LaunchedEffect(state) {
         snapshotFlow { state.value }.collect {
             Logger.d(
@@ -109,10 +135,16 @@ fun LoginScreen(
                         innerPadding.calculateTopPadding() + 64.dp,
                     ),
             )
+            if (showChooser) {
+                GoogleAccountChooser(
+                    onPickDeviceAccount = { pickDeviceAccount?.invoke() },
+                    onUseOther = { chooserDone = true },
+                )
+            } else {
             // WebView for YouTube Music login
             PlatformWebView(
                 state,
-                Config.LOG_IN_URL,
+                loginUrl,
                 aboveContent = {
                     if (devLoginSheet) {
                         DevLogInBottomSheet(
@@ -157,6 +189,7 @@ fun LoginScreen(
                         }
                     }
                 }
+            }
             }
         }
 

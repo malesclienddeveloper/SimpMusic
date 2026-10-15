@@ -996,4 +996,8 @@
     <string name="log_stack_trace_lines">Stack trace · %1$s lines</string>
     <string name="log_hide_stack_trace">Hide stack trace</string>
     <string name="log_export_failed">Could not export the log</string>
+    <string name="login_choose_title">Sign in with Google</string>
+    <string name="login_choose_subtitle">Pick an account already on this device. You will only need to confirm it on Google\'s page.</string>
+    <string name="login_choose_device_account">Choose a device account</string>
+    <string name="login_choose_other">Use another account</string>
 </resources>

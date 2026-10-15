@@ -46,3 +46,9 @@ File baru (logika di luar file upstream, supaya merge upstream mudah):
 - `SpotifyStyle` — token spasi/radius/garis tipis (`screenPadding`, `radiusCard`, `hairline`, dst).
 
 Diubah (ditandai `FORK:`): `LibraryTilingBox.kt` (daftar baris, bukan kartu pastel), `RecentlySongsScreen.kt` (header), `MiniPlayer.kt` (radius 12dp + garis tipis), `NowPlayingContentSpotify.kt` (kartu lirik).
+
+## Login Google via akun perangkat + polesan Apple Music (v1.0.2)
+
+- `expect/ui/GoogleAccountPicker*.kt`: pemilih akun Google bawaan perangkat (Android: `AccountManager.newChooseAccountIntent`, tanpa izin; Desktop: null).
+- `ui/screen/login/GoogleAccountChooser.kt` + `LogInScreen.kt`: layar pilih akun sebelum WebView; email dikirim sebagai `Email`/`login_hint`. Cookie sesi tetap diambil dari WebView seperti semula. Google bisa mengabaikan hint — perlu dicoba.
+- `AppleMusicShared.kt`: baris lirik tunggal (`AppleMusicLyricStrip`, sudah berganti per baris) dibuat lebih besar/tebal.
