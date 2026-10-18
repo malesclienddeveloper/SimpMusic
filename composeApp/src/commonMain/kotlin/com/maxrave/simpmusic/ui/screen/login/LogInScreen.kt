@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.maxrave.common.Config
 import com.maxrave.logger.Logger
+import com.maxrave.simpmusic.expect.ui.PlatformBackHandler
 import com.maxrave.simpmusic.expect.ui.PlatformWebView
 import com.maxrave.simpmusic.expect.ui.createWebViewCookieManager
 import com.maxrave.simpmusic.expect.ui.rememberGoogleAccountPicker
@@ -80,6 +81,8 @@ fun LoginScreen(
     // The cookie capture below is untouched, so the session is still read from the web login.
     var accountHint by rememberSaveable { mutableStateOf<String?>(null) }
     var chooserDone by rememberSaveable { mutableStateOf(false) }
+    var isLoggingIn by rememberSaveable { mutableStateOf(false) }
+
     val pickDeviceAccount =
         rememberGoogleAccountPicker { email ->
             if (email != null) {
@@ -88,17 +91,33 @@ fun LoginScreen(
             }
         }
     val showChooser = pickDeviceAccount != null && !chooserDone
+
+    // When the user chooses an account hint, strip passive=true from Config.LOG_IN_URL
+    // so Google doesn't attempt a silent SSO check (which aborts if cookies are empty).
+    // Instead, Google will display the interactive sign-in flow for the selected account.
     val loginUrl =
         remember(accountHint) {
             val hint = accountHint
-            if (hint == null) {
+            val cleanBaseUrl =
                 Config.LOG_IN_URL
+                    .replace("passive=true&", "")
+                    .replace("&passive=true", "")
+                    .replace("passive=true", "")
+            if (hint == null) {
+                cleanBaseUrl
             } else {
                 val enc = java.net.URLEncoder.encode(hint, "UTF-8")
-                val sep = if (Config.LOG_IN_URL.contains("?")) "&" else "?"
-                "${Config.LOG_IN_URL}${sep}Email=$enc&login_hint=$enc"
+                val sep = if (cleanBaseUrl.contains("?")) "&" else "?"
+                "${cleanBaseUrl}${sep}Email=$enc&login_hint=$enc"
             }
         }
+
+    // Handle back button on device: if currently in the web view after picking an account,
+    // go back to the account chooser instead of exiting the entire login screen.
+    PlatformBackHandler(enabled = pickDeviceAccount != null && chooserDone) {
+        chooserDone = false
+        accountHint = null
+    }
 
     LaunchedEffect(state) {
         snapshotFlow { state.value }.collect {
@@ -141,55 +160,64 @@ fun LoginScreen(
                     onUseOther = { chooserDone = true },
                 )
             } else {
-            // WebView for YouTube Music login
-            PlatformWebView(
-                state,
-                loginUrl,
-                aboveContent = {
-                    if (devLoginSheet) {
-                        DevLogInBottomSheet(
-                            onDismiss = {
-                                devLoginSheet = false
-                            },
-                            onDone = { cookie ->
-                                coroutineScope.launch {
-                                    val success = settingsViewModel.addAccount(cookie)
-                                    if (success) {
-                                        viewModel.makeToast(getString(Res.string.login_success))
-                                        navController.navigateUp()
-                                    } else {
-                                        viewModel.makeToast(getString(Res.string.login_failed))
+                // WebView for YouTube Music login
+                PlatformWebView(
+                    state,
+                    loginUrl,
+                    aboveContent = {
+                        if (devLoginSheet) {
+                            DevLogInBottomSheet(
+                                onDismiss = {
+                                    devLoginSheet = false
+                                },
+                                onDone = { cookie ->
+                                    coroutineScope.launch {
+                                        val success = settingsViewModel.addAccount(cookie)
+                                        if (success) {
+                                            viewModel.makeToast(getString(Res.string.login_success))
+                                            navController.navigateUp()
+                                        } else {
+                                            viewModel.makeToast(getString(Res.string.login_failed))
+                                        }
                                     }
-                                }
-                            },
-                            type = DevLogInType.YouTube,
-                        )
+                                },
+                                type = DevLogInType.YouTube,
+                            )
+                        }
                     }
-                }
-            ) { url ->
-                Logger.d("LogInScreen", "Current URL: $url")
-                if (url == Config.YOUTUBE_MUSIC_MAIN_URL) {
-                    coroutineScope.launch {
-                        val success =
-                            createWebViewCookieManager()
-                                .getCookie(url)
-                                .takeIf {
-                                    it.isNotEmpty()
-                                }?.let {
-                                    settingsViewModel.addAccount(it)
-                                } ?: false
+                ) { url ->
+                    Logger.d("LogInScreen", "Current URL: $url")
+                    // Google login redirects to music.youtube.com with query parameters
+                    // such as ?pli=1 or ?authuser=0. Use startsWith so we detect the
+                    // final landing URL regardless of trailing query string or hash.
+                    if (url.startsWith("https://music.youtube.com") || url.startsWith("http://music.youtube.com")) {
+                        if (isLoggingIn) return@PlatformWebView
+                        val cookie = createWebViewCookieManager().getCookie(url)
+                        // Make sure authentication cookies (SAPISID, __Secure-3PAPISID, LOGIN_INFO, or SID)
+                        // are actually present before attempting to add the account.
+                        val hasAuth = cookie.contains("SAPISID") ||
+                            cookie.contains("__Secure-3PAPISID") ||
+                            cookie.contains("LOGIN_INFO") ||
+                            cookie.contains("SID=")
+                        if (!hasAuth) {
+                            Logger.d("LogInScreen", "On music.youtube.com but auth cookies are not yet ready")
+                            return@PlatformWebView
+                        }
 
-                        createWebViewCookieManager().removeAllCookies()
-
-                        if (success) {
-                            viewModel.makeToast(getString(Res.string.login_success))
-                            navController.navigateUp()
-                        } else {
-                            viewModel.makeToast(getString(Res.string.login_failed))
+                        isLoggingIn = true
+                        coroutineScope.launch {
+                            val success = settingsViewModel.addAccount(cookie)
+                            if (success) {
+                                createWebViewCookieManager().removeAllCookies()
+                                viewModel.makeToast(getString(Res.string.login_success))
+                                navController.navigateUp()
+                            } else {
+                                isLoggingIn = false
+                                viewModel.makeToast(getString(Res.string.login_failed))
+                            }
                         }
                     }
                 }
-            }
             }
         }
 
@@ -213,7 +241,12 @@ fun LoginScreen(
                         true,
                         tint = MaterialTheme.colorScheme.onSurface,
                     ) {
-                        navController.navigateUp()
+                        if (pickDeviceAccount != null && chooserDone) {
+                            chooserDone = false
+                            accountHint = null
+                        } else {
+                            navController.navigateUp()
+                        }
                     }
                 }
             },

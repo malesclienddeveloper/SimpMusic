@@ -50,5 +50,6 @@ Diubah (ditandai `FORK:`): `LibraryTilingBox.kt` (daftar baris, bukan kartu past
 ## Login Google via akun perangkat + polesan Apple Music (v1.0.2)
 
 - `expect/ui/GoogleAccountPicker*.kt`: pemilih akun Google bawaan perangkat (Android: `AccountManager.newChooseAccountIntent`, tanpa izin; Desktop: null).
-- `ui/screen/login/GoogleAccountChooser.kt` + `LogInScreen.kt`: layar pilih akun sebelum WebView; email dikirim sebagai `Email`/`login_hint`. Cookie sesi tetap diambil dari WebView seperti semula. Google bisa mengabaikan hint — perlu dicoba.
+- `ui/screen/login/GoogleAccountChooser.kt` + `LogInScreen.kt`: layar pilih akun sebelum WebView; email dikirim sebagai `Email`/`login_hint` tanpa `passive=true` agar Google menampilkan verifikasi akun secara interaktif. Deteksi login di `PlatformWebView` mendukung variasi URL tujuan (query params seperti `?pli=1`) dan memastikan cookie autentikasi (`SAPISID`, dsb.) sudah terisi sebelum menyimpan akun. Tombol kembali dapat kembali ke pemilih akun.
+- `expect/ui/Cookies.android.kt`: `PlatformWebView` dilengkapi third-party cookies, penghapusan identifier WebView pada User-Agent agar tidak terblokir `403 disallowed_useragent`, penanganan skema `intent://`, serta sinkronisasi cookie.
 - `AppleMusicShared.kt`: baris lirik tunggal (`AppleMusicLyricStrip`, sudah berganti per baris) dibuat lebih besar/tebal.

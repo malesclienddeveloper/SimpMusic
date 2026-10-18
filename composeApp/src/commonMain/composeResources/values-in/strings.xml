@@ -338,4 +338,8 @@
     <string name="party">Pesta</string>
     <string name="commute">Perjalanan</string>
     <string name="focus">Fokus</string>
+    <string name="login_choose_title">Masuk dengan Google</string>
+    <string name="login_choose_subtitle">Pilih akun yang sudah ada di perangkat ini untuk melanjutkan masuk ke YouTube Music.</string>
+    <string name="login_choose_device_account">Pilih akun di perangkat</string>
+    <string name="login_choose_other">Gunakan akun lain</string>
 </resources>
