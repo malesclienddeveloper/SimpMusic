@@ -169,6 +169,12 @@
     <string name="log_in_to_get_personally_data">Log in to get personally data</string>
     <string name="login_success">Login success</string>
     <string name="login_failed">Login failed</string>
+    <string name="login_google_blocked_title">Google blocked this sign-in</string>
+    <string name="login_google_blocked_message">Google does not allow sign-in from inside apps: “This browser or app may not be secure”. This is Google policy, and the app cannot bypass it.</string>
+    <string name="login_google_blocked_howto">Sign in to YouTube Music first in a normal browser (on a computer: Chrome + the “SimpMusic Utils” extension; on Android: a Chromium browser that supports extensions). Copy the YouTube Music cookies there, then paste them here with “Import cookie”. The account works exactly the same.</string>
+    <string name="login_google_blocked_import">Import cookie</string>
+    <string name="login_google_blocked_retry">Try again</string>
+    <string name="login_google_blocked_close">Close</string>
     <string name="log_out">Log out from YouTube</string>
     <string name="logged_in">Logged in</string>
     <string name="logged_out">Logged out</string>

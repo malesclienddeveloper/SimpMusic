@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -41,6 +42,7 @@ import com.maxrave.simpmusic.ui.component.DevLogInBottomSheet
 import com.maxrave.simpmusic.ui.component.DevLogInType
 import com.maxrave.simpmusic.ui.component.RippleIconButton
 import com.maxrave.simpmusic.ui.icon.ArrowBackIosNew
+import com.maxrave.simpmusic.ui.icon.Help
 import com.maxrave.simpmusic.ui.icon.LogoDev
 import com.maxrave.simpmusic.ui.icon.SimpIcons
 import com.maxrave.simpmusic.ui.theme.typo
@@ -82,6 +84,14 @@ fun LoginScreen(
     var accountHint by rememberSaveable { mutableStateOf<String?>(null) }
     var chooserDone by rememberSaveable { mutableStateOf(false) }
     var isLoggingIn by rememberSaveable { mutableStateOf(false) }
+
+    // FORK: Google refuses sign-in from embedded WebViews ("This browser or app may not be
+    // secure"). The WebView still tells Google it is an app no matter what User-Agent we set
+    // (Sec-CH-UA says "Android WebView", X-Requested-With carries the package name), so this
+    // cannot be spoofed away. When Google's rejection page shows up, explain it and offer the
+    // cookie import path instead of leaving the user on a dead end.
+    var showLoginHelp by rememberSaveable { mutableStateOf(false) }
+    var reloadWebView by rememberSaveable { mutableStateOf(0) }
 
     val pickDeviceAccount =
         rememberGoogleAccountPicker { email ->
@@ -160,60 +170,69 @@ fun LoginScreen(
                     onUseOther = { chooserDone = true },
                 )
             } else {
-                // WebView for YouTube Music login
-                PlatformWebView(
-                    state,
-                    loginUrl,
-                    aboveContent = {
-                        if (devLoginSheet) {
-                            DevLogInBottomSheet(
-                                onDismiss = {
-                                    devLoginSheet = false
-                                },
-                                onDone = { cookie ->
-                                    coroutineScope.launch {
-                                        val success = settingsViewModel.addAccount(cookie)
-                                        if (success) {
-                                            viewModel.makeToast(getString(Res.string.login_success))
-                                            navController.navigateUp()
-                                        } else {
-                                            viewModel.makeToast(getString(Res.string.login_failed))
+                // WebView for YouTube Music login.
+                // FORK: key() lets "Try again" rebuild the WebView after Google refuses a sign-in.
+                key(reloadWebView) {
+                    PlatformWebView(
+                        state,
+                        loginUrl,
+                        aboveContent = {
+                            if (devLoginSheet) {
+                                DevLogInBottomSheet(
+                                    onDismiss = {
+                                        devLoginSheet = false
+                                    },
+                                    onDone = { cookie ->
+                                        coroutineScope.launch {
+                                            val success = settingsViewModel.addAccount(cleanPastedCookie(cookie))
+                                            if (success) {
+                                                viewModel.makeToast(getString(Res.string.login_success))
+                                                navController.navigateUp()
+                                            } else {
+                                                viewModel.makeToast(getString(Res.string.login_failed))
+                                            }
                                         }
-                                    }
-                                },
-                                type = DevLogInType.YouTube,
-                            )
+                                    },
+                                    type = DevLogInType.YouTube,
+                                )
+                            }
                         }
-                    }
-                ) { url ->
-                    Logger.d("LogInScreen", "Current URL: $url")
-                    // Google login redirects to music.youtube.com with query parameters
-                    // such as ?pli=1 or ?authuser=0. Use startsWith so we detect the
-                    // final landing URL regardless of trailing query string or hash.
-                    if (url.startsWith("https://music.youtube.com") || url.startsWith("http://music.youtube.com")) {
-                        if (isLoggingIn) return@PlatformWebView
-                        val cookie = createWebViewCookieManager().getCookie(url)
-                        // Make sure authentication cookies (SAPISID, __Secure-3PAPISID, LOGIN_INFO, or SID)
-                        // are actually present before attempting to add the account.
-                        val hasAuth = cookie.contains("SAPISID") ||
-                            cookie.contains("__Secure-3PAPISID") ||
-                            cookie.contains("LOGIN_INFO") ||
-                            cookie.contains("SID=")
-                        if (!hasAuth) {
-                            Logger.d("LogInScreen", "On music.youtube.com but auth cookies are not yet ready")
-                            return@PlatformWebView
+                    ) { url ->
+                        Logger.d("LogInScreen", "Current URL: $url")
+                        // FORK: Google answers embedded browsers with its "browser or app may not be
+                        // secure" page — surface the help dialog instead of a dead end.
+                        if (isGoogleSignInBlocked(url)) {
+                            Logger.w("LogInScreen", "Google refused the WebView sign-in: $url")
+                            showLoginHelp = true
                         }
+                        // Google login redirects to music.youtube.com with query parameters
+                        // such as ?pli=1 or ?authuser=0. Use startsWith so we detect the
+                        // final landing URL regardless of trailing query string or hash.
+                        if (url.startsWith("https://music.youtube.com") || url.startsWith("http://music.youtube.com")) {
+                            if (isLoggingIn) return@PlatformWebView
+                            val cookie = createWebViewCookieManager().getCookie(url)
+                            // Make sure authentication cookies (SAPISID, __Secure-3PAPISID, LOGIN_INFO, or SID)
+                            // are actually present before attempting to add the account.
+                            val hasAuth = cookie.contains("SAPISID") ||
+                                cookie.contains("__Secure-3PAPISID") ||
+                                cookie.contains("LOGIN_INFO") ||
+                                cookie.contains("SID=")
+                            if (!hasAuth) {
+                                Logger.d("LogInScreen", "On music.youtube.com but auth cookies are not yet ready")
+                                return@PlatformWebView
+                            }
 
-                        isLoggingIn = true
-                        coroutineScope.launch {
-                            val success = settingsViewModel.addAccount(cookie)
-                            if (success) {
-                                createWebViewCookieManager().removeAllCookies()
-                                viewModel.makeToast(getString(Res.string.login_success))
-                                navController.navigateUp()
-                            } else {
-                                isLoggingIn = false
-                                viewModel.makeToast(getString(Res.string.login_failed))
+                            isLoggingIn = true
+                            coroutineScope.launch {
+                                val success = settingsViewModel.addAccount(cookie)
+                                if (success) {
+                                    createWebViewCookieManager().removeAllCookies()
+                                    viewModel.makeToast(getString(Res.string.login_success))
+                                    navController.navigateUp()
+                                } else {
+                                    isLoggingIn = false
+                                    viewModel.makeToast(getString(Res.string.login_failed))
+                                }
                             }
                         }
                     }
@@ -251,6 +270,17 @@ fun LoginScreen(
                 }
             },
             actions = {
+                // FORK: reach the sign-in help even when Google's block page is not auto-detected.
+                IconButton(
+                    onClick = {
+                        showLoginHelp = true
+                    },
+                ) {
+                    Icon(
+                        SimpIcons.Help,
+                        "Login help",
+                    )
+                }
                 IconButton(
                     onClick = {
                         devLoginSheet = true
@@ -267,5 +297,36 @@ fun LoginScreen(
                     containerColor = Color.Transparent,
                 ),
         )
+
+        // FORK: Google blocked the in-app sign-in — explain it and offer the cookie import path.
+        if (showLoginHelp) {
+            LoginHelpSheet(
+                onDismiss = { showLoginHelp = false },
+                onImportCookie = {
+                    showLoginHelp = false
+                    devLoginSheet = true
+                },
+                onRetry = {
+                    showLoginHelp = false
+                    isLoggingIn = false
+                    reloadWebView++
+                },
+            )
+        }
     }
 }
+
+// FORK: does this URL belong to Google's "This browser or app may not be secure" rejection?
+private fun isGoogleSignInBlocked(url: String): Boolean =
+    url.contains("accounts.google.com") &&
+        (url.contains("signin/rejected") || url.contains("rrk=") || url.contains("info/unknownerror"))
+
+// FORK: accept what people actually paste — "Cookie: a=b; c=d", stray whitespace or line breaks.
+private fun cleanPastedCookie(raw: String): String =
+    raw
+        .trim()
+        .removePrefix("Cookie:")
+        .removePrefix("cookie:")
+        .trim()
+        .replace("\n", "")
+        .replace("\r", "")

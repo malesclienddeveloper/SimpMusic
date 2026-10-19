@@ -53,3 +53,11 @@ Diubah (ditandai `FORK:`): `LibraryTilingBox.kt` (daftar baris, bukan kartu past
 - `ui/screen/login/GoogleAccountChooser.kt` + `LogInScreen.kt`: layar pilih akun sebelum WebView; email dikirim sebagai `Email`/`login_hint` tanpa `passive=true` agar Google menampilkan verifikasi akun secara interaktif. Deteksi login di `PlatformWebView` mendukung variasi URL tujuan (query params seperti `?pli=1`) dan memastikan cookie autentikasi (`SAPISID`, dsb.) sudah terisi sebelum menyimpan akun. Tombol kembali dapat kembali ke pemilih akun.
 - `expect/ui/Cookies.android.kt`: `PlatformWebView` dilengkapi third-party cookies, penghapusan identifier WebView pada User-Agent agar tidak terblokir `403 disallowed_useragent`, penanganan skema `intent://`, serta sinkronisasi cookie.
 - `AppleMusicShared.kt`: baris lirik tunggal (`AppleMusicLyricStrip`, sudah berganti per baris) dibuat lebih besar/tebal.
+
+## Bantuan login saat Google memblokir WebView (v1.0.3)
+
+Kebijakan "secure browsers" Google menolak login dari WebView mana pun, dan itu tidak bisa ditipu lewat User-Agent: WebView tetap mengirim `Sec-CH-UA: "Android WebView"` dan `X-Requested-With: <nama paket>` ke Google. Jalur yang terbukti bekerja adalah jalur impor cookie (sama seperti alur resmi Desktop SimpMusic).
+
+- `ui/screen/login/LoginHelpSheet.kt` (baru) — dialog bantuan: muncul otomatis saat WebView mendarat di halaman penolakan Google (`accounts.google.com/.../signin/rejected`), juga bisa dibuka dari ikon `?` di toolbar login. Tombol: **Impor cookie** (membuka lembar tempel cookie), **Coba lagi** (membangun ulang WebView), **Tutup**.
+- `LogInScreen.kt` — deteksi `isGoogleSignInBlocked(url)` pada `onPageFinished`; "Coba lagi" memakai `key(reloadWebView)` untuk membangun ulang `PlatformWebView`; tempelan cookie dibersihkan oleh `cleanPastedCookie()` (menerima awalan `Cookie:`, spasi, dan baris baru).
+- Cara login yang bekerja: masuk ke YouTube Music di browser asli (komputer: Chrome + ekstensi **SimpMusic Utils**; Android: browser Chromium yang mendukung ekstensi), salin cookie YouTube Music, lalu tempel lewat **Impor cookie** di layar login.

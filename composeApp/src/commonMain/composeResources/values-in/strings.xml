@@ -143,6 +143,12 @@
     <string name="log_in_to_YouTube">Masuk ke akun YouTube</string>
     <string name="log_in_to_get_personally_data">Masuk data musik di YouTube anda</string>
     <string name="login_success">Berhasil masuk</string>
+    <string name="login_google_blocked_title">Google memblokir login ini</string>
+    <string name="login_google_blocked_message">Google tidak mengizinkan login dari dalam aplikasi: “Browser atau aplikasi ini mungkin tidak aman”. Ini kebijakan Google dan tidak bisa ditembus aplikasi.</string>
+    <string name="login_google_blocked_howto">Masuk ke YouTube Music dulu di browser biasa (di komputer: Chrome + ekstensi “SimpMusic Utils”; di Android: browser Chromium yang mendukung ekstensi). Salin cookie YouTube Music di sana, lalu tempel di sini lewat “Impor cookie”. Akun bekerja sama persis.</string>
+    <string name="login_google_blocked_import">Impor cookie</string>
+    <string name="login_google_blocked_retry">Coba lagi</string>
+    <string name="login_google_blocked_close">Tutup</string>
     <string name="log_out">Keluar dari YouTube</string>
     <string name="logged_in">Sudah masuk</string>
     <string name="logged_out">Sudah keluar</string>
