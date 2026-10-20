@@ -20,9 +20,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -42,10 +44,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -103,6 +107,7 @@ import com.maxrave.domain.utils.toSongEntity
 import com.maxrave.domain.utils.toTrack
 import com.maxrave.simpmusic.Platform
 import com.maxrave.simpmusic.expect.ui.HorizontalScrollBar
+import com.maxrave.simpmusic.extension.getStringBlocking
 import com.maxrave.simpmusic.getPlatform
 import com.maxrave.simpmusic.ui.navigation.destination.list.AlbumDestination
 import com.maxrave.simpmusic.ui.navigation.destination.list.ArtistDestination
@@ -126,6 +131,7 @@ import simpmusic.composeapp.generated.resources.description
 import simpmusic.composeapp.generated.resources.more
 import simpmusic.composeapp.generated.resources.play_all
 import simpmusic.composeapp.generated.resources.playlist
+import simpmusic.composeapp.generated.resources.radio
 import simpmusic.composeapp.generated.resources.subscribers
 import simpmusic.composeapp.generated.resources.wrapped_recap_subtitle
 import simpmusic.composeapp.generated.resources.you
@@ -265,25 +271,40 @@ fun HomeSectionHeader(
             )
         }
         if (moreEndpoint != null) {
-            TextButton(
+            SectionHeaderButton(
+                text = stringResource(Res.string.more),
                 onClick = { navController.navigateToMoreEndpoint(moreEndpoint, data.title) },
-                colors =
-                    ButtonDefaults
-                        .textButtonColors()
-                        .copy(contentColor = MaterialTheme.colorScheme.onSurface),
-            ) {
-                Text(stringResource(Res.string.more), style = typo().bodySmall)
-            }
+            )
         } else if (data.playAllEndpoint != null) {
-            TextButton(
-                onClick = onPlayAll,
-                colors =
-                    ButtonDefaults
-                        .textButtonColors()
-                        .copy(contentColor = MaterialTheme.colorScheme.onSurface),
-            ) {
-                Text(stringResource(Res.string.play_all), style = typo().bodySmall)
-            }
+            SectionHeaderButton(text = stringResource(Res.string.play_all), onClick = onPlayAll)
+        }
+    }
+}
+
+/**
+ * The "More" / "Play all" button beside a section title. Material reserves 48dp around every
+ * clickable and gives a button a 40dp minimum height, which made a header carrying this button
+ * 20dp taller than one without it. This one is only its text plus 2dp above and below, so a header
+ * with the button and a header without it stand the same height. Fingers still get a 48dp target:
+ * Compose widens the touch bounds of anything smaller than that on its own.
+ */
+@Composable
+fun SectionHeaderButton(
+    text: String,
+    onClick: () -> Unit,
+) {
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        TextButton(
+            onClick = onClick,
+            // Any non-zero minimum here keeps TextButton's own 40dp minimum height from applying.
+            modifier = Modifier.defaultMinSize(minHeight = 1.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 2.dp),
+            colors =
+                ButtonDefaults
+                    .textButtonColors()
+                    .copy(contentColor = MaterialTheme.colorScheme.onSurface),
+        ) {
+            Text(text, style = typo().bodySmall)
         }
     }
 }
@@ -456,7 +477,7 @@ internal fun Content.playRadio(viewModel: BaseViewModel) {
             listTracks = arrayListOf(firstQueue),
             firstPlayedTrack = firstQueue,
             playlistId = "RDAMVM$videoId",
-            playlistName = title,
+            playlistName = "\"$title\" ${getStringBlocking(Res.string.radio)}",
             playlistType = PlaylistType.RADIO,
             continuation = null,
         ),
@@ -853,6 +874,9 @@ fun QuickPicksItem(
                             )
                         }
                     }
+                    if (data.isLive) {
+                        item { LiveBadge(modifier = Modifier.padding(end = 6.dp)) }
+                    }
                     item {
                         Text(
                             text = data.artists.toListName().connectArtists(),
@@ -1095,7 +1119,7 @@ fun HomeItemVideo(
  * SemiBold, which made the chip taller than the line it sits on.
  */
 @Composable
-private fun LiveBadge(modifier: Modifier = Modifier) {
+internal fun LiveBadge(modifier: Modifier = Modifier) {
     Text(
         text = stringResource(Res.string.live_badge),
         style = typo().bodySmall.copy(fontSize = 9.sp, lineHeight = 11.sp, fontWeight = FontWeight.Bold),

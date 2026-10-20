@@ -146,7 +146,9 @@ fun LoginScreen(
     // Hide bottom navigation when entering this screen
     LaunchedEffect(Unit) {
         hideBottomNavigation()
-        createWebViewCookieManager().removeAllCookies()
+        // The cookies are wiped by PlatformWebView(clearCookies = true) instead: upstream moved
+        // the wipe into the WebView itself, because touching CookieManager before the WebView has
+        // started drags WebView's startup back onto the main thread.
     }
 
     // Show bottom navigation when leaving this screen
@@ -196,7 +198,10 @@ fun LoginScreen(
                                     type = DevLogInType.YouTube,
                                 )
                             }
-                        }
+                        },
+                        // FORK: upstream's parameter — the WebView clears its cookies right before
+                        // the login page loads, which is what the old clear-on-screen-entry did.
+                        clearCookies = true,
                     ) { url ->
                         Logger.d("LogInScreen", "Current URL: $url")
                         // FORK: Google answers embedded browsers with its "browser or app may not be

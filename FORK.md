@@ -61,3 +61,15 @@ Kebijakan "secure browsers" Google menolak login dari WebView mana pun, dan itu 
 - `ui/screen/login/LoginHelpSheet.kt` (baru) — dialog bantuan: muncul otomatis saat WebView mendarat di halaman penolakan Google (`accounts.google.com/.../signin/rejected`), juga bisa dibuka dari ikon `?` di toolbar login. Tombol: **Impor cookie** (membuka lembar tempel cookie), **Coba lagi** (membangun ulang WebView), **Tutup**.
 - `LogInScreen.kt` — deteksi `isGoogleSignInBlocked(url)` pada `onPageFinished`; "Coba lagi" memakai `key(reloadWebView)` untuk membangun ulang `PlatformWebView`; tempelan cookie dibersihkan oleh `cleanPastedCookie()` (menerima awalan `Cookie:`, spasi, dan baris baru).
 - Cara login yang bekerja: masuk ke YouTube Music di browser asli (komputer: Chrome + ekstensi **SimpMusic Utils**; Android: browser Chromium yang mendukung ekstensi), salin cookie YouTube Music, lalu tempel lewat **Impor cookie** di layar login.
+
+## Merge upstream/dev 4430fd14 (19 Okt 2026)
+
+`git merge upstream/dev` selesai; resolusi per file (catat supaya merge berikutnya lebih cepat):
+
+- `expect/ui/Cookies.android.kt`: arsitektur upstream dipakai (startUpWebView di luar main thread, tombol Retry saat renderer mati, fallback "unavailable"); tambahan fork dipertahankan (third-party cookie, penanganan `intent://`, flush cookie, WebChromeClient, `databaseEnabled` + mixed content, penyaringan `wv`/`Version/4.0` dari User-Agent).
+- `ui/screen/login/LogInScreen.kt`: fitur fork (pemilih akun perangkat, dialog bantuan saat Google memblokir, tombol coba lagi, pembersih tempelan cookie) di atas parameter baru upstream `clearCookies = true` — pembersihan cookie pindah ke dalam WebView, bukan saat layar dibuka.
+- `ui/component/LibraryTilingBox.kt`: desain baris fork dipertahankan; baris "Cached" (Android) dari upstream ditambahkan; kartu `CollectionCard`/`FavoriteCard` upstream tidak dipakai.
+- `ui/component/ChipGroup.kt`: `ChipBody` dari upstream dipakai; warna chip fork (pill abu-abu tanpa rim) dipulihkan.
+- `ui/screen/MiniPlayer.kt`: bungkus `LeftToRight` upstream dipakai; garis progres 2dp + track tipis ala fork.
+- `composeResources/values/strings.xml`: string `comments*` (upstream) dan `login_choose_*` (fork) digabung.
+- `ui/screen/home/RecentlySongsScreen.kt` + `SpotifyHistoryHeader.kt`: dihapus — upstream menghapus layar "Recently added" (16 Okt 2026) beserta destination dan ViewModel-nya, jadi header fork ikut jadi tak terpakai. `SpotifyQuickAccessGrid.kt` masih dipakai Home dan tetap.

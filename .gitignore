@@ -47,3 +47,9 @@ sentry.properties
 /desktopApp/generated.conveyor.conf
 # Conveyor output directory
 /output/
+
+# FORK: signing key and local merge artefacts — never commit these
+# release.jks is THIS fork's own signing key; *.b64 is its base64 export.
+*.jks
+*.b64
+*.bundle

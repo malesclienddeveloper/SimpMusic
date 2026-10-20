@@ -33,7 +33,10 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.maxrave.domain.data.model.library.LibraryCollectionPreview
 import com.maxrave.domain.data.model.library.LibraryOverview
+import com.maxrave.simpmusic.Platform
+import com.maxrave.simpmusic.getPlatform
 import com.maxrave.simpmusic.ui.icon.Download
+import com.maxrave.simpmusic.ui.icon.DownloadForOffline
 import com.maxrave.simpmusic.ui.icon.Favorite
 import com.maxrave.simpmusic.ui.icon.GraphicEq
 import com.maxrave.simpmusic.ui.icon.Groups
@@ -46,6 +49,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import simpmusic.composeapp.generated.resources.Res
+import simpmusic.composeapp.generated.resources.cached
 import simpmusic.composeapp.generated.resources.downloaded
 import simpmusic.composeapp.generated.resources.favorite
 import simpmusic.composeapp.generated.resources.followed
@@ -55,9 +59,10 @@ import simpmusic.composeapp.generated.resources.liked_songs_count
 import simpmusic.composeapp.generated.resources.most_played
 
 /**
- * FORK: the four collections at the top of Your library as quiet list rows — a 56dp cover (round
+ * FORK: the collections at the top of Your library as quiet list rows — a 56dp cover (round
  * for artists), the title in white, the count in soft grey, nothing else. Replaces upstream's
- * pastel tile grid; the signature is unchanged so LibraryScreen did not need to move.
+ * pastel tile grid; [cached] keeps upstream's Cached collection reachable as the fifth row on
+ * Android (Desktop keeps no song cache), so the fork's look loses no feature against it.
  *
  * With no artwork yet a row shows a flat gradient tile with a glyph instead, so a new user sees the
  * same rows waiting to be filled. [overview] is null until the first read lands, and the rows then
@@ -67,6 +72,7 @@ import simpmusic.composeapp.generated.resources.most_played
 fun LibraryTilingBox(
     navController: NavController,
     overview: LibraryOverview?,
+    cached: LibraryCollectionPreview?,
 ) {
     val open = { type: LibraryDynamicPlaylistType ->
         navController.navigate(LibraryDynamicPlaylistDestination(type = type.toStringParams()))
@@ -122,6 +128,19 @@ fun LibraryTilingBox(
             glyphColors = listOf(Color(0xFF3D3D3D), Color(0xFF1F1F1F)),
             round = false,
         ) { open(LibraryDynamicPlaylistType.Downloaded) }
+        if (getPlatform() == Platform.Android) {
+            CollectionRow(
+                title = Res.string.cached,
+                subtitle =
+                    cached?.count?.let {
+                        pluralStringResource(Res.plurals.liked_songs_count, it, it)
+                    },
+                preview = cached,
+                glyph = SimpIcons.DownloadForOffline,
+                glyphColors = listOf(Color(0xFF3D3D3D), Color(0xFF1F1F1F)),
+                round = false,
+            ) { open(LibraryDynamicPlaylistType.Cached) }
+        }
     }
 }
 
